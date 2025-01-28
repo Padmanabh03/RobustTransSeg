@@ -62,7 +62,7 @@ The dataset includes voxel-wise annotations for the following classes:
   - Dice Metric for evaluating segmentation performance.
 
 ## Results
-- **Dice Score**: Approximately 0.28, highlighting room for improvement in segmentation performance.
+- **Dice Score**: Approximately 0.613, highlighting room for improvement in segmentation performance.
 - **Training and Validation Loss**: Steady decrease across epochs, indicating effective learning.
 
 ## Challenges and Future Work
