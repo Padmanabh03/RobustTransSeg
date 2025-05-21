@@ -1,0 +1,15 @@
+# Ignore training data folders
+BraTS2020_TrainingData/
+data/
+
+# Ignore output folders
+outputs/
+outputs_dual/
+
+# Python-specific ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.log
