@@ -121,7 +121,7 @@ Parameters:
 - **IoU Score**: 0.6858
 
 ### Visualizations
-<<<<<<< HEAD
+
 ![Loss Curves](result/loss.png)
 *Training and validation loss curves*
 
