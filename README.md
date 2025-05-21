@@ -1,109 +1,204 @@
 # RobustTransSeg
 
-**RobustTransSeg: Robust Medical Image Segmentation with Transformer-Based Architectures**
+**Implementation and Comparison of CNN and Transformer-Based Architectures for Brain Tumor Segmentation**
 
 ## Overview
-RobustTransSeg is a novel medical image segmentation model that integrates Convolutional Neural Networks (CNNs) and Transformer-based architectures to leverage both local and global features. This hybrid dual-encoder design provides robust segmentation outputs for complex and noisy medical imaging data. The project is built and tested using the BRATS dataset, focusing on brain tumor segmentation tasks.
+This project implements and compares two different approaches for brain tumor segmentation using the BraTS 2020 dataset:
+1. A CNN-based approach using 3D UNet architecture
+2. A hybrid Transformer+CNN approach with dual encoders and feature fusion (results coming soon)
 
-## Features
-- **Hybrid Dual-Encoder Architecture**:
-  - CNN Encoder for local spatial feature extraction.
-  - Transformer Encoder (Swin Transformer) for global contextual understanding.
-- **Feature Fusion**:
-  - Combines local and global features to create a unified representation.
-- **Decoder with Skip Connections**:
-  - Refines fused features and incorporates hierarchical features from the encoder.
-- **Robust Training Mechanism**:
-  - DiceCELoss for balancing class imbalance and voxel-wise accuracy.
-  - Gradient scaling and learning rate scheduling for stable training.
+The goal is to evaluate and compare these established methodologies, providing insights into their performance on the challenging task of brain tumor segmentation.
 
-## Dataset
-This project uses the BRATS (Brain Tumor Segmentation) dataset, which contains multi-modal MRI scans with the following modalities:
-- FLAIR
-- T1-weighted
-- T1-weighted with contrast enhancement (T1c)
-- T2-weighted
+## BraTS Dataset
+The Brain Tumor Segmentation (BraTS) 2020 dataset is a comprehensive collection of multi-modal MRI scans:
 
-The dataset includes voxel-wise annotations for the following classes:
-- Background
-- Edema
-- Non-enhancing Tumor
-- Enhancing Tumor
+### Data Characteristics
+- **Number of cases**: 369 training cases
+- **Image Resolution**: 240 x 240 x 155
+- **MRI Modalities**:
+  - T1: Basic T1-weighted scan
+  - T1ce: T1-weighted scan with contrast enhancement (highlights active tumor)
+  - T2: T2-weighted scan (shows tumor and edema)
+  - FLAIR: Fluid Attenuated Inversion Recovery (highlights edema)
 
-## Model Architecture
-- **CNN Encoder**:
-  - 4 convolutional blocks with down-sampling.
-  - Outputs feature maps capturing local spatial details.
-- **Transformer Encoder**:
-  - Swin Transformer-based architecture.
-  - Outputs hierarchical feature maps capturing global context.
-- **Feature Fusion**:
-  - Combines CNN and Transformer feature maps.
-  - Outputs a fused representation for the decoder.
-- **Decoder**:
-  - 4 upsampling blocks with skip connections from the CNN encoder.
-  - Produces high-resolution voxel-wise segmentation maps.
+### Tumor Regions
+The dataset provides pixel-wise annotations for three tumor regions:
+1. **Enhancing Tumor (ET)**: Areas showing contrast enhancement in T1ce
+2. **Tumor Core (TC)**: Includes enhancing tumor, necrotic parts, and non-enhancing tumor
+3. **Whole Tumor (WT)**: Encompasses tumor core and peritumoral edema
 
-## Training Details
-- **Loss Function**:
-  - DiceCELoss: A combination of Dice Loss and Cross-Entropy Loss.
-    ```
-    Loss = λ_dice · Dice Loss + λ_ce · Cross-Entropy Loss
-    ```
-  - λ_dice = 0.5, λ_ce = 0.5
+### Data Preprocessing
+- Intensity normalization using z-score standardization
+- Cropping to 128x128x128 to focus on brain region
+- Data augmentation:
+  - Random flips (probability: 0.5)
+  - Random rotations (90-degree increments)
+  - Intensity shifts and scaling
 
-- **Optimizer**:
-  - AdamW with learning rate = 1e-4
+## Model Architectures
 
-- **Scheduler**:
-  - StepLR: Reduces learning rate by half every 50 epochs
+### 3D UNet Architecture (Current Implementation)
+A volumetric segmentation network with symmetric encoder-decoder structure:
 
-- **Metrics**:
-  - Dice Metric for evaluating segmentation performance.
+#### Encoder
+```
+Input (3, 128, 128, 128)
+│
+├── Conv Block 1 (16 channels)
+│   ├── Conv3D(3→16) + BN + ReLU
+│   ├── Conv3D(16→16) + BN + ReLU
+│   └── Dropout(0.1)
+│
+├── MaxPool3D ↓
+├── Conv Block 2 (32 channels) + Dropout(0.1)
+├── MaxPool3D ↓
+├── Conv Block 3 (64 channels) + Dropout(0.2)
+├── MaxPool3D ↓
+├── Conv Block 4 (128 channels) + Dropout(0.2)
+├── MaxPool3D ↓
+└── Conv Block 5 (256 channels) + Dropout(0.3)
+```
 
-## Results
-- **Dice Score**: Approximately 0.613, highlighting room for improvement in segmentation performance.
-- **Training and Validation Loss**: Steady decrease across epochs, indicating effective learning.
+#### Decoder
+```
+Conv Block 5
+│
+├── UpConv4 + Skip Connection from Conv4
+│   └── Conv Block (128 channels)
+│
+├── UpConv3 + Skip Connection from Conv3
+│   └── Conv Block (64 channels)
+│
+├── UpConv2 + Skip Connection from Conv2
+│   └── Conv Block (32 channels)
+│
+├── UpConv1 + Skip Connection from Conv1
+│   └── Conv Block (16 channels)
+│
+└── Final Conv3D (4 output channels)
+```
 
-## Challenges and Future Work
-- **Challenges**:
-  - Computational bottlenecks due to the dual-encoder architecture.
-  - Dataset imbalance affecting performance on rare classes like non-enhancing tumors.
+### Transformer+CNN Architecture (Coming Soon)
+Building upon works like UNETR and SwinUNETR, this implementation combines:
 
-- **Future Work**:
-  - Increase output channel depth to capture richer feature representations.
-  - Implement advanced loss functions like focal loss to address class imbalance.
-  - Optimize memory usage and explore curriculum learning strategies.
+#### Dual Encoder
+1. **CNN Path**:
+   - Similar to 3D UNet encoder
+   - Focuses on local spatial features
+   - 5 resolution levels with increasing channels
 
-## Installation
+2. **Transformer Path**:
+   - Based on Swin Transformer
+   - Hierarchical feature extraction
+   - Self-attention for global context
+
+3. **Feature Fusion**:
+   - Novel Feature Cross-Enhancement (NFCE) blocks
+   - Adaptive feature fusion at each scale
+   - Residual connections for stable training
+
+## Loss Function
+The training uses a combined loss function:
+
+```python
+Loss = λ₁ * DiceLoss + λ₂ * FocalLoss
+
+where:
+- DiceLoss = 1 - (2|X∩Y| + ε)/(|X| + |Y| + ε)
+- FocalLoss = -α(1-p)ᵧlog(p)
+```
+
+Parameters:
+- λ₁ = 1.0 (Dice Loss weight)
+- λ₂ = 1.0 (Focal Loss weight)
+- α = 0.25 (Focal Loss balancing factor)
+- γ = 2 (Focal Loss focusing parameter)
+- ε = 1e-7 (smoothing factor)
+
+## Current Results (CNN Approach)
+### Quantitative Results
+- **Dice Score**: 0.7864
+- **IoU Score**: 0.6858
+
+### Visualizations
+![Training Curves](outputs/20250508_010904/visualizations/training_curves_epoch_75.png)
+*Training and validation curves showing model convergence*
+
+![Test Prediction](outputs/20250508_010904/visualizations/test_prediction_2.png)
+*Sample segmentation result on test data*
+
+![Segmentation Animation](outputs/20250508_010904/visualizations/test_prediction_2.gif)
+*3D visualization of tumor segmentation*
+
+## Implementation Details
+
+### Training Pipeline
+1. **Data Loading**:
+   - Custom DataLoader with on-the-fly augmentation
+   - Batch size: 2 (memory constraints)
+   - Parallel data loading with 4 workers
+
+2. **Optimization**:
+   - Optimizer: Adam with learning rate 1e-4
+   - Learning rate scheduling: ReduceLROnPlateau
+   - Early stopping with patience 7
+   - Gradient clipping at 1.0
+
+
+### Evaluation Metrics
+- Dice Coefficient (per class and mean)
+- IoU Score
+- Pixel-wise Accuracy
+- Class-wise Accuracy
+
+## Installation and Usage
 1. Clone this repository:
    ```bash
-   git clone https://github.com/<username>/RobustTransSeg.git
+   git clone https://github.com/Padmanabh03/RobustTransSeg.git
    cd RobustTransSeg
    ```
+
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Download the BRATS dataset from [Kaggle](https://www.kaggle.com/) and place it in the appropriate directory.
 
-## Usage
-1. Train the model:
+3. Prepare data:
    ```bash
-   python train.py --config configs/train_config.yaml
-   ```
-2. Evaluate the model:
-   ```bash
-   python evaluate.py --model-path <path_to_trained_model>
-   ```
-3. Visualize results:
-   ```bash
-   python visualize.py --model-path <path_to_trained_model>
+   python data_preprocessing.py --input_dir path/to/brats2020
+   python data_split.py
    ```
 
+4. Train models:
+   ```bash
+   # For CNN approach
+   python train.py
+
+   # For Transformer+CNN approach (Coming Soon)
+   python train_dual.py
+   ```
+
+5. Evaluate:
+   ```bash
+   python evaluate.py --model_path path/to/model
+   ```
+
+## Related Work
+This implementation builds upon several established works in medical image segmentation:
+- **3D UNet**: Volumetric segmentation architecture (Çiçek et al., 2016)
+- **UNETR**: Transformers for medical image segmentation (Hatamizadeh et al., 2022)
+- **SwinUNETR**: Hierarchical transformers (Tang et al., 2022)
+
+## Future Updates
+- Results from the Transformer+CNN approach
+- Comparative analysis between both approaches
+- Extended visualization examples
+- Detailed ablation studies
 
 ## Acknowledgements
-This work builds upon existing architectures such as Swin-UNet, TransUNet, and UNETR. We thank the authors for their contributions to the medical image segmentation field.
+- BraTS 2020 dataset organizers
+- Authors of UNETR, SwinUNETR, and other foundational works
+- PyTorch and MONAI communities
 
 ## License
 This project is licensed under the MIT License. See `LICENSE` for details.
