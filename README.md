@@ -1,5 +1,3 @@
-Based on the training summary and README file you've shared, I'd update the RobustTransSeg README as follows:
-
 # RobustTransSeg
 
 **Implementation and Comparison of CNN and Transformer-Based Architectures for Brain Tumor Segmentation**
@@ -39,7 +37,7 @@ The dataset provides pixel-wise annotations for three tumor regions:
 
 ## Model Architectures
 
-### 3D UNet Architecture (Current Implementation)
+### 3D UNet Architecture
 A volumetric segmentation network with symmetric encoder-decoder structure:
 
 #### Encoder
@@ -80,20 +78,87 @@ Conv Block 5
 └── Final Conv3D (4 output channels)
 ```
 
-### Dual Encoder U-Net Architecture (Newly Implemented)
-This implementation combines CNN and Transformer components for enhanced segmentation:
+### Dual Encoder U-Net Architecture (Optimized Implementation)
+Combining Transformer and CNN capabilities with parameter-efficient design:
 
-#### Optimized Dual Encoder Configuration
-- **Model Type**: Dual Encoder U-Net
-- **Feature Size**: Reduced to 24 (efficient parameter usage)
-- **Batch Size**: 1 with gradient accumulation of 4
-- **Gradient Clipping**: 1.0
-- **Training Epochs**: 16
+#### Dual Encoder Structure
+1. **CNN Encoder Path**:
+   ```
+   Input (3, 128, 128, 128)
+   │
+   ├── Conv Block 1 (8 channels)
+   │   ├── Conv3D(3→8) + BN + ReLU
+   │   ├── Conv3D(8→8) + BN + ReLU
+   │   └── Dropout(0.1)
+   │
+   ├── MaxPool3D ↓
+   ├── Conv Block 2 (16 channels) + Dropout(0.1)
+   ├── MaxPool3D ↓
+   ├── Conv Block 3 (32 channels) + Dropout(0.15)
+   ├── MaxPool3D ↓
+   ├── Conv Block 4 (64 channels) + Dropout(0.15)
+   └── MaxPool3D ↓
+   ```
 
-#### Performance Metrics
-- **Best Validation Loss**: 0.4022
-- **Final Validation Dice Score**: 0.6076
-- **Quick Test Dice Score** (on 5 batches): 0.7819
+2. **Transformer Encoder Path**:
+   ```
+   Input (3, 128, 128, 128)
+   │
+   ├── Patch Embedding (3→24)
+   │
+   ├── Swin Transformer Block (Level 1, 24 channels)
+   │   └── Window Attention + MLP
+   │
+   ├── Downsampling ↓
+   ├── Swin Transformer Block (Level 2, 24 channels)
+   │
+   ├── Downsampling ↓
+   ├── Swin Transformer Block (Level 3, 48 channels)
+   │
+   ├── Downsampling ↓
+   └── Swin Transformer Block (Level 4, 96 channels)
+   ```
+
+3. **Feature Fusion**:
+   ```
+   For each level:
+   │
+   ├── CNN Features
+   ├── Transformer Features
+   │
+   ├── Feature Alignment (if sizes differ)
+   │   └── Interpolation to match spatial dimensions
+   │
+   ├── NFCE Block
+   │   ├── Channel Projection (if needed)
+   │   ├── Feature Addition
+   │   ├── Depth-wise Separable Conv
+   │   └── Residual Connection
+   │
+   └── Fused Features
+   ```
+
+#### Decoder
+```
+Fused Level 4 Features (deepest)
+│
+├── Upsample 3 + Skip Connection from Level 3
+│   └── Conv Block (48 channels) + Dropout(0.15)
+│
+├── Upsample 2 + Skip Connection from Level 2
+│   └── Conv Block (24 channels) + Dropout(0.1)
+│
+├── Upsample 1 + Skip Connection from Level 1
+│   └── Conv Block (24 channels) + Dropout(0.1)
+│
+└── Final Conv3D (4 output channels)
+```
+
+#### Optimizations
+- **Reduced Feature Size**: 24 (vs. 48 in standard implementations)
+- **Parameter Efficiency**: Fewer channels in both encoder paths
+- **Memory Optimization**: Gradient checkpointing, efficient feature fusion
+- **Training Stability**: Residual connections, appropriate dropout rates
 
 ## Loss Function
 The training uses a combined loss function:
@@ -120,9 +185,10 @@ Parameters:
 - **IoU Score**: 0.6858
 
 ### Dual Encoder Approach
-- **Dice Score**: 0.7819 (test set)
+- **Dice Score**: 0.7819 (quick test on 5 batches)
 - **Validation Dice**: 0.6076
 - **Best Validation Loss**: 0.4022
+- **Training Epochs**: 16 (vs. longer training for CNN approach)
 
 ### Visualizations
 
@@ -132,17 +198,17 @@ Parameters:
 ![Dice Score Curves](result/dice.png)
 *Training and validation Dice score curves*
 
+![Brain MRI Slices with Tumor Segmentation](result/brain_mri_slices.png)
+*Multiple brain MRI slices showing tumor segmentation results. The top row shows original slices, while the bottom row displays segmentation masks with different tumor regions highlighted in different colors.*
+
+![Training Progress Metrics](result/training_progress.png)
+*Training progress showing loss, dice score, IoU score, and accuracy metrics over epochs. The graphs show the convergence pattern of the dual encoder model during training.*
+
 ![Test Prediction](result/test_prediction_2.png)
 *Sample segmentation result on test data*
 
 ![Segmentation Animation](result/test_prediction_2.gif)
 *Animated visualization of segmentation results*
-
-![Brain MRI Slices with Tumor Segmentation](path/to/brain_mri_slices.png)
-*Multiple brain MRI slices showing tumor segmentation results. The top row shows original slices, while the bottom row displays segmentation masks with different tumor regions highlighted in different colors.*
-
-![Training Progress Metrics](path/to/training_progress.png)
-*Training progress showing loss, dice score, IoU score, and accuracy metrics over epochs. The graphs show the convergence pattern of the dual encoder model during training.*
 
 ## Implementation Details
 
@@ -157,6 +223,8 @@ Parameters:
    - Learning rate scheduling: ReduceLROnPlateau
    - Early stopping with patience 7
    - Gradient clipping at 1.0
+   - Mixed precision training (for GPU acceleration)
+   - Gradient accumulation (steps=4)
 
 ### Evaluation Metrics
 - Dice Coefficient (per class and mean)
