@@ -185,9 +185,8 @@ Parameters:
 - **IoU Score**: 0.6858
 
 ### Dual Encoder Approach
-- **Dice Score**: 0.7819 (quick test on 5 batches)
-- **Validation Dice**: 0.6076
-- **Best Validation Loss**: 0.4022
+- **Dice Score**: 0.7819 
+- **IoU Score**: 0.6623
 - **Training Epochs**: 16 (vs. longer training for CNN approach)
 
 ### Visualizations
@@ -198,10 +197,10 @@ Parameters:
 ![Dice Score Curves](result/dice.png)
 *Training and validation Dice score curves*
 
-![Brain MRI Slices with Tumor Segmentation](result/brain_mri_slices.png)
+![Brain MRI Slices with Tumor Segmentation](result/test_prediction_resumed_3)
 *Multiple brain MRI slices showing tumor segmentation results. The top row shows original slices, while the bottom row displays segmentation masks with different tumor regions highlighted in different colors.*
 
-![Training Progress Metrics](result/training_progress.png)
+![Training Progress Metrics](result/training_curves_epoch_16)
 *Training progress showing loss, dice score, IoU score, and accuracy metrics over epochs. The graphs show the convergence pattern of the dual encoder model during training.*
 
 ![Test Prediction](result/test_prediction_2.png)
