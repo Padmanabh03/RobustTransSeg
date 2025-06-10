@@ -201,7 +201,7 @@ Parameters:
 *Multiple brain MRI slices showing tumor segmentation results. The top row shows original slices, while the bottom row displays segmentation masks with different tumor regions highlighted in different colors.*
 
 ![Training Progress Metrics](result/training_curves_epoch_16)
-*Training progress showing loss, dice score, IoU score, and accuracy metrics over epochs. The graphs show the convergence pattern of the dual encoder model during training.*
+*Training progress showing loss, dice score over epochs. The graphs show the convergence pattern of the dual encoder model during training.*
 
 ![Test Prediction](result/test_prediction_2.png)
 *Sample segmentation result on test data*
