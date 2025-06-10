@@ -197,10 +197,10 @@ Parameters:
 ![Dice Score Curves](result/dice.png)
 *Training and validation Dice score curves*
 
-![Brain MRI Slices with Tumor Segmentation](result/test_prediction_resumed_3)
+![Brain MRI Slices with Tumor Segmentation](result/test_prediction_resumed_3.png)
 *Multiple brain MRI slices showing tumor segmentation results. The top row shows original slices, while the bottom row displays segmentation masks with different tumor regions highlighted in different colors.*
 
-![Training Progress Metrics](result/training_curves_epoch_16)
+![Training Progress Metrics](result/training_curves_epoch_16.png)
 *Training progress showing loss, dice score over epochs. The graphs show the convergence pattern of the dual encoder model during training.*
 
 ![Test Prediction](result/test_prediction_2.png)
